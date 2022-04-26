@@ -1,4 +1,4 @@
-module github.com/kannanr/goque/v2
+module github.com/kannanr/goque
 
 go 1.18
 
