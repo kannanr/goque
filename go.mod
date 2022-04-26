@@ -1,5 +1,5 @@
-module github.com/jitsucom/goque/v2
+module github.com/kannanr/goque/v2
 
-go 1.13
+go 1.18
 
 require github.com/syndtr/goleveldb v1.0.0
