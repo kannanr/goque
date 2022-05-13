@@ -119,6 +119,58 @@ func TestQueueDequeue(t *testing.T) {
 	}
 }
 
+func TestQueueDequeueByID(t *testing.T) {
+	file := fmt.Sprintf("test_db_%d", time.Now().UnixNano())
+	q, err := OpenQueue(file)
+	if err != nil {
+		t.Error(err)
+	}
+	defer q.Drop()
+
+	for i := 1; i <= 10; i++ {
+		if _, err = q.EnqueueString(fmt.Sprintf("value for item %d", i)); err != nil {
+			t.Error(err)
+		}
+	}
+
+	if q.Length() != 10 {
+		t.Errorf("Expected queue length of 10, got %d", q.Length())
+	}
+
+	item, id, err := q.PeekGetIDAndValue()
+	if err != nil {
+		t.Error(err)
+	}
+	if _, err = q.EnqueueString(fmt.Sprintf("value for item %d", id+1)); err != nil {
+		t.Error(err)
+	}
+	deqItem, err := q.DequeueByID(id)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if q.Length() != 10 {
+		t.Errorf("Expected queue length of 10, got %d", q.Length())
+	}
+
+	compStr := "value for item 1"
+
+	if deqItem.ToString() != compStr {
+		t.Errorf("Expected string to be '%s', got '%s'", compStr, deqItem.ToString())
+	}
+	if deqItem.ToString() != item.ToString() {
+		t.Errorf("Expected string to be '%s', got '%s'", compStr, deqItem.ToString())
+	}
+	peekItem, err := q.Peek()
+	if err != nil {
+		t.Error(err)
+	}
+	compStr = "value for item 2"
+	if peekItem.ToString() != compStr {
+		t.Errorf("Expected string to be '%s', got '%s'", compStr, peekItem.ToString())
+	}
+}
+
 func TestQueueEncodeDecodePointerJSON(t *testing.T) {
 	file := fmt.Sprintf("test_db_%d", time.Now().UnixNano())
 	q, err := OpenQueue(file)
@@ -184,6 +236,39 @@ func TestQueuePeek(t *testing.T) {
 
 	if peekItem.ToString() != compStr {
 		t.Errorf("Expected string to be '%s', got '%s'", compStr, peekItem.ToString())
+	}
+
+	if q.Length() != 1 {
+		t.Errorf("Expected queue length of 1, got %d", q.Length())
+	}
+}
+
+func TestQueuePeekGetIDAndValue(t *testing.T) {
+	file := fmt.Sprintf("test_db_%d", time.Now().UnixNano())
+	q, err := OpenQueue(file)
+	if err != nil {
+		t.Error(err)
+	}
+	defer q.Drop()
+
+	compStr := "value for item"
+	compId := 1
+
+	if _, err = q.EnqueueString(compStr); err != nil {
+		t.Error(err)
+	}
+
+	peekItem, id, err := q.PeekGetIDAndValue()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if peekItem.ToString() != compStr {
+		t.Errorf("Expected string to be '%s', got '%s'", compStr, peekItem.ToString())
+	}
+
+	if id != uint64(compId) {
+		t.Errorf("Expected ID to be %d, got %d", compId, id)
 	}
 
 	if q.Length() != 1 {

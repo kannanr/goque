@@ -161,6 +161,33 @@ func (q *Queue) Dequeue() (*Item, error) {
 	return item, nil
 }
 
+// Dequeue removes the next item in the queue and returns it.
+func (q *Queue) DequeueByID(id uint64) (*Item, error) {
+	q.Lock()
+	defer q.Unlock()
+
+	// Check if queue is closed.
+	if !q.isOpen {
+		return nil, ErrDBClosed
+	}
+
+	// Try to get the next item in the queue.
+	item, err := q.getItemByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Remove this item from the queue.
+	if err := q.db.Delete(item.Key, nil); err != nil {
+		return nil, err
+	}
+
+	// Increment head position.
+	q.head++
+
+	return item, nil
+}
+
 // Peek returns the next item in the queue without removing it.
 func (q *Queue) Peek() (*Item, error) {
 	q.RLock()
@@ -172,6 +199,20 @@ func (q *Queue) Peek() (*Item, error) {
 	}
 
 	return q.getItemByID(q.head + 1)
+}
+
+// Peek returns the next item in the queue without removing it.
+func (q *Queue) PeekGetIDAndValue() (*Item, uint64, error) {
+	q.RLock()
+	defer q.RUnlock()
+
+	// Check if queue is closed.
+	if !q.isOpen {
+		return nil, 0, ErrDBClosed
+	}
+	itemID := q.head + 1
+	item, err := q.getItemByID(itemID)
+	return item, itemID, err
 }
 
 // PeekByOffset returns the item located at the given offset,
